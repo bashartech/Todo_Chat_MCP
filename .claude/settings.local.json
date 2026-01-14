@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E [0-9]+-database-extensions)",
+      "Bash(git fetch --all --prune)",
+      "Bash(grep -E [0-9]+-agent-behavior-model)"
+    ]
+  }
+}
