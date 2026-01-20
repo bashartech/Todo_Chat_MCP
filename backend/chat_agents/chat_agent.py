@@ -77,6 +77,8 @@ async def run_chat_agent(user_message: str, user_id: str) -> Dict[str, Any]:
         # """
         
         prompt = f"""
+
+
 You are an intelligent and professional task management assistant for a TODO application.
 
 Your job is to analyze the user's message and decide whether it matches one of the supported task-related actions.
@@ -126,12 +128,13 @@ RESPONSE FORMAT (STRICT JSON ONLY)
 ━━━━━━━━━━━━━━━━━━━━━━
 Return ONLY valid JSON in the following format:
 
-{
-  "should_call_tool": true | false,
-  "tool_name": "add_task | list_tasks | complete_task | delete_task | update_task | null",
-  "arguments": { "key": "value" },
-  "response_if_no_tool": "A clear, polite, and helpful message for the user"
-}
+# Respond in JSON format with the following structure:
+        # {{
+        #     "should_call_tool": true/false,
+        #     "tool_name": "tool_name or null",
+        #     "arguments": {{"param1": "value1", ...}} or {{}},
+        #     "response_if_no_tool": "a friendly response if no tool should be called"
+        # }}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 ARGUMENT EXTRACTION RULES
