@@ -32,49 +32,143 @@ async def run_chat_agent(user_message: str, user_id: str) -> Dict[str, Any]:
 
         # Create the async client with Gemini API
         client = AsyncOpenAI(
-            api_key="AIzaSyBrROyiYtJaNUWvLSLJ-k9nKkM-4R_SJfw",
+            api_key=os.getenv("GEMINI_API_KEY"),
             base_url="https://generativelanguage.googleapis.com/v1beta/openai"
         )
 
         # Create a structured prompt to analyze user intent
+        # prompt = f"""
+        # Analyze the following user message to determine if it corresponds to any of these specific actions:
+
+        # Actions:
+        # - add_task: When user wants to create/add a new task
+        # - list_tasks: When user wants to see/view/list their tasks
+        # - complete_task: When user wants to mark a task as done/completed
+        # - delete_task: When user wants to remove/delete a task
+        # - update_task: When user wants to change/edit a task
+
+        # CRITICAL RULES:
+        # 1. For complete_task, delete_task, and update_task operations, the user MUST provide a specific task ID
+        # 2. If the user wants to complete, delete, or update a task but doesn't provide a task ID, do NOT call the tool
+        # 3. Instead, return should_call_tool: false and provide a helpful response asking for the task ID
+        # 4. For update_task, the user must provide both a task ID and the changes to make
+        # 5. For list_tasks, if user asks for specific tasks, still call the tool but the response will help them identify IDs
+
+        # User message: "{user_message}"
+        # User ID: "{user_id}"
+
+        # Respond in JSON format with the following structure:
+        # {{
+        #     "should_call_tool": true/false,
+        #     "tool_name": "tool_name or null",
+        #     "arguments": {{"param1": "value1", ...}} or {{}},
+        #     "response_if_no_tool": "a friendly response if no tool should be called"
+        # }}
+
+        # For tool_name "add_task": extract title and optional description
+        # For tool_name "list_tasks": extract optional status filter (all, pending, completed)
+        # For tool_name "complete_task", "delete_task", or "update_task": ONLY proceed if a specific task_id is clearly mentioned in the user message
+        # For tool_name "update_task": extract task_id, and optional title/description
+        # Always include user_id in arguments.
+
+        # If the user wants to perform complete_task, delete_task, or update_task without specifying a task ID, return should_call_tool: false and a helpful response explaining what information is needed. The response should be professional and helpful, such as "To update a task, I need the specific task ID. Could you please provide the task ID? You can ask me to show your tasks first to see the IDs." or "To complete a task, I need the specific task ID. Please let me know which task ID you'd like to complete."
+
+        # Be precise and return ONLY valid JSON without any other text.
+        # """
+        
         prompt = f"""
-        Analyze the following user message to determine if it corresponds to any of these specific actions:
+You are an intelligent and professional task management assistant for a TODO application.
 
-        Actions:
-        - add_task: When user wants to create/add a new task
-        - list_tasks: When user wants to see/view/list their tasks
-        - complete_task: When user wants to mark a task as done/completed
-        - delete_task: When user wants to remove/delete a task
-        - update_task: When user wants to change/edit a task
+Your job is to analyze the user's message and decide whether it matches one of the supported task-related actions.
+If enough information is provided, prepare a tool call.
+If information is missing, respond politely and clearly, explaining exactly what the user needs to do next.
 
-        CRITICAL RULES:
-        1. For complete_task, delete_task, and update_task operations, the user MUST provide a specific task ID
-        2. If the user wants to complete, delete, or update a task but doesn't provide a task ID, do NOT call the tool
-        3. Instead, return should_call_tool: false and provide a helpful response asking for the task ID
-        4. For update_task, the user must provide both a task ID and the changes to make
-        5. For list_tasks, if user asks for specific tasks, still call the tool but the response will help them identify IDs
+━━━━━━━━━━━━━━━━━━━━━━
+SUPPORTED ACTIONS
+━━━━━━━━━━━━━━━━━━━━━━
+- add_task: The user wants to create or add a new task
+- list_tasks: The user wants to view or list their tasks
+- complete_task: The user wants to mark a task as completed
+- delete_task: The user wants to delete a task
+- update_task: The user wants to modify an existing task
 
-        User message: "{user_message}"
-        User ID: "{user_id}"
+━━━━━━━━━━━━━━━━━━━━━━
+CRITICAL RULES (VERY IMPORTANT)
+━━━━━━━━━━━━━━━━━━━━━━
+1. For complete_task, delete_task, and update_task:
+   - A valid numeric task_id is REQUIRED
+   - If task_id is missing or unclear, DO NOT call any tool
 
-        Respond in JSON format with the following structure:
-        {{
-            "should_call_tool": true/false,
-            "tool_name": "tool_name or null",
-            "arguments": {{"param1": "value1", ...}} or {{}},
-            "response_if_no_tool": "a friendly response if no tool should be called"
-        }}
+2. For update_task:
+   - The user MUST provide:
+     - task_id
+     - at least one change (new title or description)
 
-        For tool_name "add_task": extract title and optional description
-        For tool_name "list_tasks": extract optional status filter (all, pending, completed)
-        For tool_name "complete_task", "delete_task", or "update_task": ONLY proceed if a specific task_id is clearly mentioned in the user message
-        For tool_name "update_task": extract task_id, and optional title/description
-        Always include user_id in arguments.
+3. If required information is missing:
+   - Set "should_call_tool" to false
+   - Provide a professional, friendly explanation of what is missing
+   - Clearly guide the user on how to proceed
 
-        If the user wants to perform complete_task, delete_task, or update_task without specifying a task ID, return should_call_tool: false and a helpful response explaining what information is needed. The response should be professional and helpful, such as "To update a task, I need the specific task ID. Could you please provide the task ID? You can ask me to show your tasks first to see the IDs." or "To complete a task, I need the specific task ID. Please let me know which task ID you'd like to complete."
+4. For list_tasks:
+   - Always allow the tool call
+   - Optional status filter: all, pending, completed
 
-        Be precise and return ONLY valid JSON without any other text.
-        """
+5. Always include user_id in tool arguments when calling a tool
+
+━━━━━━━━━━━━━━━━━━━━━━
+USER CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━
+User message: "{user_message}"
+User ID: "{user_id}"
+
+━━━━━━━━━━━━━━━━━━━━━━
+RESPONSE FORMAT (STRICT JSON ONLY)
+━━━━━━━━━━━━━━━━━━━━━━
+Return ONLY valid JSON in the following format:
+
+{
+  "should_call_tool": true | false,
+  "tool_name": "add_task | list_tasks | complete_task | delete_task | update_task | null",
+  "arguments": { "key": "value" },
+  "response_if_no_tool": "A clear, polite, and helpful message for the user"
+}
+
+━━━━━━━━━━━━━━━━━━━━━━
+ARGUMENT EXTRACTION RULES
+━━━━━━━━━━━━━━━━━━━━━━
+- add_task:
+  - Extract title (required)
+  - Extract description (optional)
+
+- list_tasks:
+  - Extract status if mentioned (all, pending, completed)
+
+- complete_task / delete_task:
+  - Extract numeric task_id ONLY if clearly mentioned
+
+- update_task:
+  - Extract numeric task_id
+  - Extract updated title and/or description
+
+━━━━━━━━━━━━━━━━━━━━━━
+USER EXPERIENCE GUIDELINES
+━━━━━━━━━━━━━━━━━━━━━━
+When information is missing, respond in a calm, professional, and user-friendly tone.
+
+Examples:
+- “To delete a task, I need the task ID. Please tell me the task ID you want to delete. You can ask me to show your tasks first if you’re not sure.”
+- “To update a task, please provide the task ID and what you want to change (for example, a new title or description).”
+- “I can help with that, but I need a bit more information to proceed.”
+
+━━━━━━━━━━━━━━━━━━━━━━
+FINAL INSTRUCTION
+━━━━━━━━━━━━━━━━━━━━━━
+- Be precise and accurate
+- Do NOT guess task IDs
+- Do NOT call tools when required data is missing
+- Output ONLY valid JSON — no explanations, no extra text
+"""
+
 
         response = await client.chat.completions.create(
             model="gemini-2.5-flash-lite",
