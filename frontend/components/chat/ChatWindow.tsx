@@ -69,21 +69,21 @@ const ChatWindow: React.FC = () => {
   };
 
   return (
-    <MainContainer className="bg-white rounded-xl" style={{ height: '100%', border: 'none', borderRadius: '8px', backgroundColor: 'transparent' }}>
-      <ChatContainer  style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor:"white" }}>
+    <MainContainer className="bg-transparent rounded-xl" style={{ height: '100%', border: 'none', borderRadius: '8px', backgroundColor: 'transparent' }}>
+      <ChatContainer style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'transparent' }}>
         <MessageList
-          className="p-4 flex-grow bg-gray-50"
+          className="p-3 sm:p-4 flex-grow bg-neutral-900/30"
           style={{
             overflowY: 'auto',
-            backgroundColor:"white",
+            backgroundColor: 'transparent',
             maxHeight: 'calc(100vh - 150px)', // Ensure there's always space for input and header
-            minHeight: '200px',
+            minHeight: '150px',
             flex: 1,
             scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db #f9fafb'
+            scrollbarColor: '#374151 #111827'
           }}
         >
-          {isLoading && <TypingIndicator content="AI is thinking..." className="text-gray-500" />}
+          {isLoading && <TypingIndicator content="AI is thinking..." className="text-gray-400" style={{ backgroundColor: 'transparent' }} />}
           {messages.map((msg, index) => (
             <Message
               key={index}
@@ -94,10 +94,10 @@ const ChatWindow: React.FC = () => {
                 position: 'normal'
               }}
               className={`
-                mb-3 rounded-lg p-3 max-w-[85%] shadow-sm
+                mb-2 sm:mb-3 rounded-lg p-3 sm:p-4 max-w-[80%] sm:max-w-[85%] shadow-sm text-sm
                 ${msg.role === 'user'
-                  ? 'ml-auto bg-gray-900 text-white rounded-br-none border border-white'
-                  : 'mr-auto bg-gray-100 text-gray-800  rounded-bl-none'}
+                  ? 'ml-auto text-white rounded-br-none'
+                  : 'mr-auto bg-neutral-800/60 text-gray-100 rounded-bl-none border border-neutral-700/50'}
               `}
             />
           ))}
@@ -108,9 +108,13 @@ const ChatWindow: React.FC = () => {
           onSend={handleSend}
           attachButton={false}  // Remove attachment button for cleaner UI
           disabled={isLoading}
-          className="border-t border-gray-200  bg-white text-gray-800 placeholder-gray-400 "
+          className="border-t border-neutral-700/50 bg-neutral-900/50 text-white placeholder-gray-400 text-sm p-3"
           style={{
-            marginTop: 'auto'
+            marginTop: 'auto',
+            backgroundColor: 'rgba(17, 24, 39, 0.6)',
+            color: 'white',
+            borderColor: '#374151',
+            padding: '0.75rem'
           }}
         />
       </ChatContainer>
